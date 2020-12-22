@@ -1,0 +1,11 @@
+[Unit]
+Description = Thanos Dns
+
+[Service]
+Type = simple
+User = ubuntu
+Group= ubuntu
+ExecStart = /home/ubuntu/venv/bin/python /home/ubuntu/thanos_dns/app.py
+
+[Install]
+WantedBy=multi-user.target
