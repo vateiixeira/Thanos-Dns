@@ -91,6 +91,7 @@ if __name__ == '__main__':
     try:
         result = a.get_data()
     except Exception as ex:
+        logger.info('Error!')
         logger.info(ex)
         logger.info(result)
     else:
