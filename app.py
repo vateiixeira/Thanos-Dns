@@ -97,8 +97,6 @@ if __name__ == '__main__':
     logger.info('Serviço iniciado.')
     a = Conection()
     result = a.get_data()
-    logger.info(result)
-    dico = json.dumps(result, default=json_serial)
     
     private_ip = result['Reservations'][0]['Instances'][0]['PrivateIpAddress']
     public_ip = result['Reservations'][0]['Instances'][0]['PublicIpAddress']
@@ -121,8 +119,3 @@ if __name__ == '__main__':
         else:
             print(r_change_ip['errors'])
     
-
-    #print(result['Reservations'][0]['Instances'][0]['PrivateIpAddress'])
-    #print(result['Reservations'][0]['Instances'][0]['PublicIpAddress'])
-    # with codecs.open('data.json', 'w', encoding='utf-8') as f:
-    #     json.dump(dico, f, ensure_ascii=False)
