@@ -69,8 +69,10 @@ class Conection():
         try:
             client = self.connection()
         except Exception as ex:
+            logger.info('Error ao conectar com a amazon')
             return ex
         else:
+            logger.info('Conexão estabelecida com a Amazon')
             response = client.describe_instances(
                 Filters=[
                     {
