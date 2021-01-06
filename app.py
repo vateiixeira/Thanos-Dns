@@ -92,28 +92,30 @@ if __name__ == '__main__':
         result = a.get_data()
     except Exception as ex:
         logger.info(ex)
-    dico = json.dumps(result, default=json_serial)
-    
-    private_ip = result['Reservations'][0]['Instances'][0]['PrivateIpAddress']
-    public_ip = result['Reservations'][0]['Instances'][0]['PublicIpAddress']
-    logger.info(f'Informações capturadas da instancia: Private IP:{private_ip} | Public IP: {public_ip}')
-
-    logger.info(f'Checando DNS records...')
-    cloud = CloudFlare()
-    dns_records = cloud.get_dns_records()
-    r_dns_records = dns_records.json()
-    type_dns = r_dns_records['result'][0]['type']
-    ip_dns = r_dns_records['result'][0]['content']
-
-    if ip_dns == public_ip:
-        logger.info("IP publico da instancia é igual ao setado no DNS.")
+        logger.info(result)
     else:
-        logger.info("Ips divergem... iniciando alteração")   
-        r_change_ip = cloud.change_ip(public_ip).json()
-        if r_change_ip['success'] == True:
-            print('DNS alterado com sucesso!')
+        dico = json.dumps(result, default=json_serial)
+        
+        private_ip = result['Reservations'][0]['Instances'][0]['PrivateIpAddress']
+        public_ip = result['Reservations'][0]['Instances'][0]['PublicIpAddress']
+        logger.info(f'Informações capturadas da instancia: Private IP:{private_ip} | Public IP: {public_ip}')
+
+        logger.info(f'Checando DNS records...')
+        cloud = CloudFlare()
+        dns_records = cloud.get_dns_records()
+        r_dns_records = dns_records.json()
+        type_dns = r_dns_records['result'][0]['type']
+        ip_dns = r_dns_records['result'][0]['content']
+
+        if ip_dns == public_ip:
+            logger.info("IP publico da instancia é igual ao setado no DNS.")
         else:
-            print(r_change_ip['errors'])
+            logger.info("Ips divergem... iniciando alteração")   
+            r_change_ip = cloud.change_ip(public_ip).json()
+            if r_change_ip['success'] == True:
+                print('DNS alterado com sucesso!')
+            else:
+                print(r_change_ip['errors'])
     
 
     #print(result['Reservations'][0]['Instances'][0]['PrivateIpAddress'])
