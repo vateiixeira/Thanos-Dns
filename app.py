@@ -61,7 +61,7 @@ class Conection():
         client = boto3.client('ec2',
             aws_access_key_id=self.key,
             aws_secret_access_key=self.password,
-            region_name = 'sa-east-1'
+            region_name = config('REGION_NAME')
             )
         return client
 
@@ -88,7 +88,10 @@ class Conection():
 if __name__ == '__main__':
     logger.info('Serviço iniciado.')
     a = Conection()
-    result = a.get_data()
+    try:
+        result = a.get_data()
+    except Exception as ex:
+        logger.info(ex)
     dico = json.dumps(result, default=json_serial)
     
     private_ip = result['Reservations'][0]['Instances'][0]['PrivateIpAddress']
