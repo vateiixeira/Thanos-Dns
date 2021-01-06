@@ -66,57 +66,56 @@ class Conection():
         return client
 
     def get_data(self):
-        client = self.connection()
-        response = client.describe_instances(
-            Filters=[
-                {
-                    'Name': 'tag:Name',
-                    'Values': [
-                        self.name_instance,
-                    ]
-                },
-            ],
-            # InstanceIds=[
-            #     'string',
-            # ],
-            #DryRun=True,
-            MaxResults=123,
-            #NextToken='string'
-            )
-        return response
+        try:
+            client = self.connection()
+        except Exception as ex:
+            return ex
+        else:
+            response = client.describe_instances(
+                Filters=[
+                    {
+                        'Name': 'tag:Name',
+                        'Values': [
+                            self.name_instance,
+                        ]
+                    },
+                ],
+                # InstanceIds=[
+                #     'string',
+                # ],
+                #DryRun=True,
+                MaxResults=123,
+                #NextToken='string'
+                )
+            return response
 
 if __name__ == '__main__':
     logger.info('Serviço iniciado.')
     a = Conection()
-    try:
-        result = a.get_data()
-    except Exception as ex:
-        logger.info('Error!')
-        logger.info(ex)
-        logger.info(result)
+    result = a.get_data()
+    logger.info(result)
+    dico = json.dumps(result, default=json_serial)
+    
+    private_ip = result['Reservations'][0]['Instances'][0]['PrivateIpAddress']
+    public_ip = result['Reservations'][0]['Instances'][0]['PublicIpAddress']
+    logger.info(f'Informações capturadas da instancia: Private IP:{private_ip} | Public IP: {public_ip}')
+
+    logger.info(f'Checando DNS records...')
+    cloud = CloudFlare()
+    dns_records = cloud.get_dns_records()
+    r_dns_records = dns_records.json()
+    type_dns = r_dns_records['result'][0]['type']
+    ip_dns = r_dns_records['result'][0]['content']
+
+    if ip_dns == public_ip:
+        logger.info("IP publico da instancia é igual ao setado no DNS.")
     else:
-        dico = json.dumps(result, default=json_serial)
-        
-        private_ip = result['Reservations'][0]['Instances'][0]['PrivateIpAddress']
-        public_ip = result['Reservations'][0]['Instances'][0]['PublicIpAddress']
-        logger.info(f'Informações capturadas da instancia: Private IP:{private_ip} | Public IP: {public_ip}')
-
-        logger.info(f'Checando DNS records...')
-        cloud = CloudFlare()
-        dns_records = cloud.get_dns_records()
-        r_dns_records = dns_records.json()
-        type_dns = r_dns_records['result'][0]['type']
-        ip_dns = r_dns_records['result'][0]['content']
-
-        if ip_dns == public_ip:
-            logger.info("IP publico da instancia é igual ao setado no DNS.")
+        logger.info("Ips divergem... iniciando alteração")   
+        r_change_ip = cloud.change_ip(public_ip).json()
+        if r_change_ip['success'] == True:
+            print('DNS alterado com sucesso!')
         else:
-            logger.info("Ips divergem... iniciando alteração")   
-            r_change_ip = cloud.change_ip(public_ip).json()
-            if r_change_ip['success'] == True:
-                print('DNS alterado com sucesso!')
-            else:
-                print(r_change_ip['errors'])
+            print(r_change_ip['errors'])
     
 
     #print(result['Reservations'][0]['Instances'][0]['PrivateIpAddress'])
