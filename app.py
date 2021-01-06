@@ -89,6 +89,8 @@ class Conection():
                 MaxResults=123,
                 #NextToken='string'
                 )
+            if len(response['Reservations']) == 0:
+                logger.info('Não obteve resultados de consulta da amazon, verifique o nome da instancia e as configurações de login.')
             return response
 
 if __name__ == '__main__':
