@@ -5,6 +5,7 @@ import codecs
 import requests
 from datetime import date, datetime
 import logging
+import botocore
 
 logging.basicConfig(filename=config('LOG_PATH'), level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -66,13 +67,8 @@ class Conection():
         return client
 
     def get_data(self):
+        client = self.connection()            
         try:
-            client = self.connection()
-        except Exception as ex:
-            logger.info('Error ao conectar com a amazon')
-            return ex
-        else:
-            logger.info('Conexão estabelecida com a Amazon')
             response = client.describe_instances(
                 Filters=[
                     {
@@ -89,33 +85,42 @@ class Conection():
                 MaxResults=123,
                 #NextToken='string'
                 )
+        except botocore.exceptions.ClientError as ex:
+            logger.info(ex)
+            return 'error'
+        else:
             if len(response['Reservations']) == 0:
                 logger.info('Não obteve resultados de consulta da amazon, verifique o nome da instancia e as configurações de login.')
+                return 'error'
+            if response['Reservations'][0]['Instances'][0]['State']['Name'] == 'stopped':
+                logger.info('Instancia está parada. Não possui IP publico.Verifique...')
+                return 'error'
             return response
 
 if __name__ == '__main__':
+    logger.info('-'*90)
     logger.info('Serviço iniciado.')
     a = Conection()
     result = a.get_data()
-    
-    private_ip = result['Reservations'][0]['Instances'][0]['PrivateIpAddress']
-    public_ip = result['Reservations'][0]['Instances'][0]['PublicIpAddress']
-    logger.info(f'Informações capturadas da instancia: Private IP:{private_ip} | Public IP: {public_ip}')
+    if result != 'error':
+        private_ip = result['Reservations'][0]['Instances'][0]['PrivateIpAddress']
+        public_ip = result['Reservations'][0]['Instances'][0]['PublicIpAddress']
+        logger.info(f'Informações capturadas da instancia: Private IP:{private_ip} | Public IP: {public_ip}')
 
-    logger.info(f'Checando DNS records...')
-    cloud = CloudFlare()
-    dns_records = cloud.get_dns_records()
-    r_dns_records = dns_records.json()
-    type_dns = r_dns_records['result'][0]['type']
-    ip_dns = r_dns_records['result'][0]['content']
+        logger.info(f'Checando DNS records...')
+        cloud = CloudFlare()
+        dns_records = cloud.get_dns_records()
+        r_dns_records = dns_records.json()
+        type_dns = r_dns_records['result'][0]['type']
+        ip_dns = r_dns_records['result'][0]['content']
 
-    if ip_dns == public_ip:
-        logger.info("IP publico da instancia é igual ao setado no DNS.")
-    else:
-        logger.info("Ips divergem... iniciando alteração")   
-        r_change_ip = cloud.change_ip(public_ip).json()
-        if r_change_ip['success'] == True:
-            print('DNS alterado com sucesso!')
+        if ip_dns == public_ip:
+            logger.info("IP publico da instancia é igual ao setado no DNS.")
         else:
-            print(r_change_ip['errors'])
+            logger.info("Ips divergem... iniciando alteração")   
+            r_change_ip = cloud.change_ip(public_ip).json()
+            if r_change_ip['success'] == True:
+                print('DNS alterado com sucesso!')
+            else:
+                print(r_change_ip['errors'])
     
